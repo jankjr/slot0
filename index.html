@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>slot0</title>
+<style>
+  :root {
+    --bg: #0a0d11;
+    --card-bg: #0c1015;
+    --ink: #d6dde5;
+    --dim: #6b7684;
+    --faint: #2a3340;
+    --link: #c8d4e0;
+    --link-hover: #ffffff;
+    --accent: #ffe066;
+    --up:   rgba(70, 200, 140, 0.9);
+    --down: rgba(220, 80, 100, 0.9);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+    overflow: hidden;
+  }
+  canvas#bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  .ticker {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 26px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 26px;
+    z-index: 3;
+    border-bottom: 1px solid var(--faint);
+    background: rgba(10, 13, 17, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+  .ticker-track {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll 90s linear infinite;
+  }
+  .ticker span { margin-right: 26px; }
+  .ticker .up   { color: var(--up); }
+  .ticker .down { color: var(--down); }
+  .ticker .flat { color: var(--dim); }
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-100%); }
+  }
+
+  main {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 60px clamp(24px, 8vw, 96px) 40px;
+  }
+  .card {
+    max-width: 560px;
+    width: 100%;
+    line-height: 1.6;
+    background: var(--card-bg);
+    border: 1px solid var(--faint);
+    padding: 36px 40px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .card.hit {
+    border-color: var(--accent);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6),
+                0 0 0 1px var(--accent),
+                0 0 32px rgba(255, 224, 102, 0.18);
+  }
+  .card-tag {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 18px;
+  }
+  .card-tag::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: #46b482;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: 1px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .tagline {
+    color: var(--dim);
+    font-size: 14px;
+    margin: 0 0 28px;
+  }
+  p {
+    font-size: 14px;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  p.muted { color: var(--dim); }
+  .links {
+    margin-top: 28px;
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .links a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid var(--faint);
+    padding: 2px 0;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .links a:hover {
+    color: var(--link-hover);
+    border-color: var(--link-hover);
+  }
+  .links .sep {
+    color: var(--faint);
+    margin: 0 12px;
+    user-select: none;
+  }
+
+  .disclaimer {
+    position: fixed;
+    bottom: 14px;
+    right: 18px;
+    font-size: 10px;
+    color: var(--ink);
+    background: var(--card-bg);
+    border: 1px solid var(--faint);
+    padding: 12px 20px;
+
+    letter-spacing: 0.08em;
+    z-index: 2;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+  .disclaimer .glyph { color: var(--dim); margin-right: 6px; }
+
+  @media (max-width: 480px) {
+    .card { padding: 28px 24px; }
+    h1 { font-size: 22px; }
+    .links { font-size: 12px; }
+    .links .sep { margin: 0 8px; }
+    .ticker { font-size: 10px; }
+    .disclaimer { font-size: 9px; right: 12px; bottom: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="ticker">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<main>
+  <div class="card" id="card">
+    <p class="card-tag">Live · Online</p>
+    <h1>slot0</h1>
+    <p class="tagline">Jan Demidov · Staff Engineer @ Reserve</p>
+
+    <p>
+      I build backend systems for the crypto space - focus on venues, trading and integrations
+    </p>
+    <p class="muted">
+      Currently: Figuring how to efficiently route liquidity into a decentralised indices
+    </p>
+
+    <div class="links">
+      <a href="https://github.com/" target="_blank" rel="noopener">github</a>
+      <span class="sep">·</span>
+      <a href="https://www.linkedin.com/" target="_blank" rel="noopener">linkedin</a>
+      <span class="sep">·</span>
+      <a href="/cv.pdf" target="_blank" rel="noopener">cv</a>
+      <span class="sep">·</span>
+      <a href="mailto:jan.demidov@reserve.org">email</a>
+    </div>
+  </div>
+</main>
+
+<div class="disclaimer">
+  <span class="glyph">↑↓</span>sparkline pong · not financial advice
+</div>
+
+<script>
+(() => {
+  const TICKERS = [
+    'AAPL','TSLA','NVDA','GME','AMC','BTC','ETH','DOGE','SHIB','PEPE',
+    'MSFT','AMZN','META','NFLX','SPY','QQQ','VIX','MOON','WAGMI','HODL',
+    'COPE','REKT','BAGS','BEAN','BANANA','GIGA','CHAD','PUMP','DUMP','RUG'
+  ];
+
+  function buildTicker() {
+    const parts = [];
+    for (let i = 0; i < 60; i++) {
+      const sym = TICKERS[Math.floor(Math.random() * TICKERS.length)];
+      const pct = (Math.random() * 30 - 15);
+      const cls = pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat';
+      const sign = pct >= 0 ? '+' : '';
+      const arrow = pct > 0.5 ? '▲' : pct < -0.5 ? '▼' : '▬';
+      parts.push(`<span class="${cls}">$${sym} ${arrow} ${sign}${pct.toFixed(2)}%</span>`);
+    }
+    document.getElementById('tickerTrack').innerHTML = parts.join('');
+  }
+  buildTicker();
+
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  const cardEl = document.getElementById('card');
+
+  const cfg = {
+    barW: 12,
+    barGap: 2,
+    bandRatio: 0.22,
+    scrollSpeed: 0.35,
+    ballR: 5,
+    ballSpeed: 3.6,
+    maxBallSpeed: 5,
+    accelOnHit: 1.02,
+    impactDamage: 9,
+    neighborSpread: 3,
+    trailMax: 1500,
+    splitChance: 0.32,
+    maxBalls: 6,
+    gridStep: 44,
+  };
+
+  const COL = {
+    greenSoft: 'rgba(70, 180, 130, 0.12)',
+    redSoft:   'rgba(200, 80, 100, 0.12)',
+    greenBody: 'rgba(70, 180, 130, 0.7)',
+    redBody:   'rgba(200, 80, 100, 0.7)',
+    wick:      'rgba(255, 255, 255, 0.18)',
+    flash:     'rgba(255, 224, 102, ',
+    trailUp:   'rgba(70, 200, 140, 0.7)',
+    trailDn:   'rgba(220, 80, 100, 0.7)',
+    debrisG:   '#46b482',
+    debrisR:   '#c85064',
+    ball:      '#ffffff',
+    ballGlow:  '#ffe066',
+    grid:      'rgba(140, 160, 180, 0.035)',
+    gridMajor: 'rgba(140, 160, 180, 0.07)',
+  };
+
+  const state = {
+    w: 0, h: 0,
+    topBars: [], bottomBars: [],
+    scroll: 0,
+    gridScroll: 0,
+    balls: [],
+    trail: [],
+    mainWrapped: false,
+    debris: [],
+    rings: [],
+    cardRect: null,
+    cardHitCooldown: 0,
+  };
+
+  function refreshCardRect() {
+    const r = cardEl.getBoundingClientRect();
+    state.cardRect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  }
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    state.w = canvas.clientWidth;
+    state.h = canvas.clientHeight;
+    canvas.width = state.w * dpr;
+    canvas.height = state.h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seedBars();
+    refreshCardRect();
+    state.balls = [makeMainBall()];
+    state.trail = [];
+    state.debris = [];
+    state.rings = [];
+  }
+
+  function makeBar(prevH) {
+    const bandH = state.h * cfg.bandRatio;
+    const minH = 10;
+    const maxH = bandH - 6;
+    const drift = (Math.random() - 0.5) * (maxH - minH) * 0.45;
+    const next = Math.max(minH, Math.min(maxH, prevH + drift));
+    return {
+      h: next,
+      color: next >= prevH ? 'green' : 'red',
+      damage: 0,
+      flash: 0,
+    };
+  }
+
+  function seedBars() {
+    const cols = Math.ceil(state.w / (cfg.barW + cfg.barGap)) + 4;
+    const start = state.h * cfg.bandRatio * 0.5;
+    state.topBars = []; state.bottomBars = [];
+    let pT = start, pB = start;
+    for (let i = 0; i < cols; i++) {
+      const t = makeBar(pT); const b = makeBar(pB);
+      state.topBars.push(t); state.bottomBars.push(b);
+      pT = t.h; pB = b.h;
+    }
+  }
+
+  function makeMainBall() {
+    let x = state.w * 0.5, y = state.h * 0.5;
+    const r = state.cardRect;
+    if (r && x > r.left - cfg.ballR && x < r.right + cfg.ballR
+         && y > r.top  - cfg.ballR && y < r.bottom + cfg.ballR) {
+      x = Math.max(40, r.left - 60);
+    }
+    const ang = (Math.random() * 0.5 + 0.25) * Math.PI * (Math.random() < 0.5 ? 1 : -1);
+    let vx = Math.cos(ang) * cfg.ballSpeed * (Math.random() < 0.5 ? 1 : -1);
+    let vy = Math.sin(ang) * cfg.ballSpeed;
+    if (Math.abs(vy) < 1.5) vy = vy < 0 ? -1.5 : 1.5;
+    return { x, y, vx, vy, main: true };
+  }
+
+  function spawnCopy(src) {
+    if (state.balls.length >= cfg.maxBalls) return;
+    const speed = Math.hypot(src.vx, src.vy);
+    const baseAngle = Math.atan2(src.vy, src.vx);
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const perturb = (0.25 + Math.random() * 0.55) * dir;
+    const a = baseAngle + perturb;
+    state.balls.push({
+      x: src.x,
+      y: src.y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      main: false,
+    });
+  }
+
+  function barIndexAt(x, arr) {
+    const stride = cfg.barW + cfg.barGap;
+    const idx = Math.floor((x + state.scroll) / stride);
+    if (idx < 0 || idx >= arr.length) return -1;
+    return idx;
+  }
+
+  function effectiveH(bar) {
+    return Math.max(2, bar.h - bar.damage);
+  }
+
+  function damageBar(arr, idx, force) {
+    const bar = arr[idx];
+    if (!bar) return;
+    bar.damage = Math.min(bar.h * 0.85, bar.damage + force);
+    bar.flash = 1;
+    for (let off = 1; off <= cfg.neighborSpread; off++) {
+      const factor = (cfg.neighborSpread + 1 - off) / (cfg.neighborSpread + 1);
+      const fall = force * factor * 0.35;
+      const a = arr[idx - off];
+      const b = arr[idx + off];
+      if (a) { a.damage = Math.min(a.h * 0.85, a.damage + fall); a.flash = Math.max(a.flash, factor * 0.7); }
+      if (b) { b.damage = Math.min(b.h * 0.85, b.damage + fall); b.flash = Math.max(b.flash, factor * 0.7); }
+    }
+  }
+
+  function spawnDebris(x, y, fromTop, color) {
+    const n = 5 + Math.floor(Math.random() * 4);
+    const dir = fromTop ? 1 : -1;
+    const cFill = color === 'green' ? COL.debrisG : COL.debrisR;
+    for (let i = 0; i < n; i++) {
+      state.debris.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 5,
+        vy: dir * (Math.random() * 2 + 1.2),
+        gravity: dir * 0.18,
+        life: 28 + Math.random() * 18,
+        max: 46,
+        size: 1.5 + Math.random() * 2,
+        rot: Math.random() * Math.PI,
+        vrot: (Math.random() - 0.5) * 0.3,
+        color: cFill,
+      });
+    }
+  }
+
+  function spawnRing(x, y) {
+    state.rings.push({ x, y, life: 18, max: 18 });
+  }
+
+  function flashCard() {
+    if (state.cardHitCooldown > 0) return;
+    state.cardHitCooldown = 18;
+    cardEl.classList.add('hit');
+    setTimeout(() => cardEl.classList.remove('hit'), 260);
+  }
+
+  function collideCard(b) {
+    const r = state.cardRect;
+    if (!r) return false;
+    const cx = Math.max(r.left, Math.min(b.x, r.right));
+    const cy = Math.max(r.top,  Math.min(b.y, r.bottom));
+    const dx = b.x - cx;
+    const dy = b.y - cy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= cfg.ballR * cfg.ballR) return false;
+
+    if (d2 === 0) {
+      const dl = b.x - r.left, dr = r.right - b.x;
+      const dt = b.y - r.top,  db = r.bottom - b.y;
+      const m = Math.min(dl, dr, dt, db);
+      if (m === dl)      { b.x = r.left  - cfg.ballR; b.vx = -Math.abs(b.vx); spawnRing(r.left,  b.y); }
+      else if (m === dr) { b.x = r.right + cfg.ballR; b.vx =  Math.abs(b.vx); spawnRing(r.right, b.y); }
+      else if (m === dt) { b.y = r.top   - cfg.ballR; b.vy = -Math.abs(b.vy); spawnRing(b.x, r.top); }
+      else               { b.y = r.bottom+ cfg.ballR; b.vy =  Math.abs(b.vy); spawnRing(b.x, r.bottom); }
+    } else {
+      const d = Math.sqrt(d2);
+      const nx = dx / d, ny = dy / d;
+      const overlap = cfg.ballR - d;
+      b.x += nx * overlap;
+      b.y += ny * overlap;
+      const dot = b.vx * nx + b.vy * ny;
+      if (dot < 0) {
+        b.vx -= 2 * dot * nx;
+        b.vy -= 2 * dot * ny;
+      }
+      spawnRing(cx, cy);
+    }
+    accelBall(b);
+    jitterBounce(b);
+    flashCard();
+    return true;
+  }
+
+  function step() {
+    state.scroll += cfg.scrollSpeed;
+    state.gridScroll = (state.gridScroll + cfg.scrollSpeed) % (cfg.gridStep * 4);
+    const stride = cfg.barW + cfg.barGap;
+    if (state.scroll >= stride) {
+      state.scroll -= stride;
+      state.topBars.shift(); state.bottomBars.shift();
+      const lt = state.topBars[state.topBars.length - 1];
+      const lb = state.bottomBars[state.bottomBars.length - 1];
+      state.topBars.push(makeBar(lt.h));
+      state.bottomBars.push(makeBar(lb.h));
+    }
+
+    for (let i = state.balls.length - 1; i >= 0; i--) {
+      const b = state.balls[i];
+      b.x += b.vx; b.y += b.vy;
+
+      if (b.main) {
+        if (b.x < -cfg.ballR) { b.x += state.w + cfg.ballR * 2; state.mainWrapped = true; }
+        else if (b.x > state.w + cfg.ballR) { b.x -= state.w + cfg.ballR * 2; state.mainWrapped = true; }
+      } else {
+        const m = cfg.ballR + 30;
+        if (b.x < -m || b.x > state.w + m || b.y < -m || b.y > state.h + m) {
+          state.balls.splice(i, 1);
+          continue;
+        }
+      }
+
+      collideCard(b);
+
+      const ti = barIndexAt(b.x, state.topBars);
+      if (ti >= 0 && b.vy < 0) {
+        const bar = state.topBars[ti];
+        const eh = effectiveH(bar);
+        if (b.y - cfg.ballR < eh) {
+          b.y = eh + cfg.ballR;
+          b.vy = Math.abs(b.vy);
+          damageBar(state.topBars, ti, cfg.impactDamage);
+          spawnDebris(b.x, eh, true, bar.color);
+          spawnRing(b.x, eh);
+          accelBall(b);
+          jitterBounce(b);
+          if (Math.random() < cfg.splitChance) spawnCopy(b);
+        }
+      }
+      const bi = barIndexAt(b.x, state.bottomBars);
+      if (bi >= 0 && b.vy > 0) {
+        const bar = state.bottomBars[bi];
+        const eh = effectiveH(bar);
+        if (b.y + cfg.ballR > state.h - eh) {
+          b.y = state.h - eh - cfg.ballR;
+          b.vy = -Math.abs(b.vy);
+          damageBar(state.bottomBars, bi, cfg.impactDamage);
+          spawnDebris(b.x, state.h - eh, false, bar.color);
+          spawnRing(b.x, state.h - eh);
+          accelBall(b);
+          jitterBounce(b);
+          if (Math.random() < cfg.splitChance) spawnCopy(b);
+        }
+      }
+
+      if (b.main && (b.y < -80 || b.y > state.h + 80)) {
+        state.balls[i] = makeMainBall();
+        state.mainWrapped = true;
+      }
+    }
+
+    if (!state.balls.some(b => b.main)) {
+      state.balls.unshift(makeMainBall());
+      state.mainWrapped = true;
+    }
+
+    resolveBallCollisions();
+
+    const main = state.balls.find(b => b.main);
+    if (main) {
+      state.trail.push({ x: main.x, y: main.y, brk: state.mainWrapped });
+      state.mainWrapped = false;
+    }
+    for (const p of state.trail) p.x -= cfg.scrollSpeed;
+    while (state.trail.length && state.trail[0].x < -4) state.trail.shift();
+    if (state.trail.length > cfg.trailMax) state.trail.splice(0, state.trail.length - cfg.trailMax);
+
+    for (const bar of state.topBars) bar.flash *= 0.88;
+    for (const bar of state.bottomBars) bar.flash *= 0.88;
+
+    for (const d of state.debris) {
+      d.x += d.vx;
+      d.y += d.vy;
+      d.vy += d.gravity;
+      d.rot += d.vrot;
+      d.life -= 1;
+    }
+    state.debris = state.debris.filter(d => d.life > 0);
+
+    for (const r of state.rings) r.life -= 1;
+    state.rings = state.rings.filter(r => r.life > 0);
+
+    if (state.cardHitCooldown > 0) state.cardHitCooldown--;
+  }
+
+  function accelBall(b) {
+    b.vx *= cfg.accelOnHit;
+    b.vy *= cfg.accelOnHit;
+    const sp = Math.hypot(b.vx, b.vy);
+    if (sp > cfg.maxBallSpeed) {
+      b.vx *= cfg.maxBallSpeed / sp;
+      b.vy *= cfg.maxBallSpeed / sp;
+    }
+  }
+
+  function jitterBounce(b) {
+    const sign = Math.sign(b.vy) || 1;
+    const a = (Math.random() - 0.5) * 0.28;
+    const c = Math.cos(a), s = Math.sin(a);
+    const nvx = b.vx * c - b.vy * s;
+    const nvy = b.vx * s + b.vy * c;
+    if (Math.sign(nvy) === sign) {
+      b.vx = nvx;
+      b.vy = nvy;
+    } else {
+      b.vx = nvx;
+    }
+  }
+
+  function resolveBallCollisions() {
+    const balls = state.balls;
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i];
+      const ra = a.main ? cfg.ballR : cfg.ballR * 0.75;
+      for (let j = i + 1; j < balls.length; j++) {
+        const b = balls[j];
+        const rb = b.main ? cfg.ballR : cfg.ballR * 0.75;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+        const rsum = ra + rb;
+        if (d2 < rsum * rsum && d2 > 0.0001) {
+          const d = Math.sqrt(d2);
+          const nx = dx / d, ny = dy / d;
+          const overlap = rsum - d;
+          a.x -= nx * overlap * 0.5;
+          a.y -= ny * overlap * 0.5;
+          b.x += nx * overlap * 0.5;
+          b.y += ny * overlap * 0.5;
+          const dotA = a.vx * nx + a.vy * ny;
+          const dotB = b.vx * nx + b.vy * ny;
+          if (dotA - dotB > 0) {
+            const swap = dotB - dotA;
+            a.vx += swap * nx; a.vy += swap * ny;
+            b.vx -= swap * nx; b.vy -= swap * ny;
+            state.rings.push({
+              x: (a.x + b.x) / 2, y: (a.y + b.y) / 2,
+              life: 10, max: 10, small: true,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  function drawGrid() {
+    const step = cfg.gridStep;
+    const major = step * 4;
+    const minorOff = state.gridScroll % step;
+    const majorOff = state.gridScroll;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.strokeStyle = COL.grid;
+    for (let x = 0.5 - minorOff; x < state.w; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, state.h); }
+    for (let y = 0.5; y < state.h; y += step) { ctx.moveTo(0, y); ctx.lineTo(state.w, y); }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.strokeStyle = COL.gridMajor;
+    for (let x = 0.5 - majorOff; x < state.w; x += major) { ctx.moveTo(x, 0); ctx.lineTo(x, state.h); }
+    for (let y = 0.5; y < state.h; y += major) { ctx.moveTo(0, y); ctx.lineTo(state.w, y); }
+    ctx.stroke();
+  }
+
+  function drawBars() {
+    const stride = cfg.barW + cfg.barGap;
+    for (let i = 0; i < state.topBars.length; i++) {
+      const bar = state.topBars[i];
+      const x = i * stride - state.scroll;
+      drawBar(x, 0, bar, true);
+    }
+    for (let i = 0; i < state.bottomBars.length; i++) {
+      const bar = state.bottomBars[i];
+      const x = i * stride - state.scroll;
+      const eh = effectiveH(bar);
+      drawBar(x, state.h - eh, bar, false);
+    }
+  }
+
+  function drawBar(x, yTop, bar, top) {
+    const eh = effectiveH(bar);
+    const isGreen = bar.color === 'green';
+
+    ctx.fillStyle = isGreen ? COL.greenSoft : COL.redSoft;
+    ctx.fillRect(x, yTop, cfg.barW, eh);
+
+    const bodyH = Math.max(3, eh * 0.55);
+    const bodyY = top ? yTop + eh - bodyH : yTop;
+    ctx.fillStyle = isGreen ? COL.greenBody : COL.redBody;
+    ctx.fillRect(x + 1, bodyY, cfg.barW - 2, bodyH);
+
+    ctx.fillStyle = COL.wick;
+    ctx.fillRect(x + cfg.barW / 2 - 0.5, yTop, 1, eh);
+
+    if (bar.damage > 1) {
+      const edgeY = top ? yTop + eh : yTop;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(x, edgeY - (top ? 1 : 0), cfg.barW, 1);
+    }
+
+    if (bar.flash > 0.02) {
+      ctx.fillStyle = COL.flash + bar.flash.toFixed(2) + ')';
+      ctx.fillRect(x, yTop, cfg.barW, eh);
+    }
+  }
+
+  function drawTrail() {
+    const t = state.trail;
+    if (t.length < 2) return;
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    let prevColor = null;
+    let started = false;
+    for (let i = 1; i < t.length; i++) {
+      const a = t[i - 1], b = t[i];
+      if (b.brk) {
+        if (started) ctx.stroke();
+        started = false;
+        prevColor = null;
+        continue;
+      }
+      const c = b.y < a.y ? COL.trailUp : COL.trailDn;
+      if (c !== prevColor) {
+        if (started) ctx.stroke();
+        ctx.strokeStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        prevColor = c;
+        started = true;
+      }
+      ctx.lineTo(b.x, b.y);
+    }
+    if (started) ctx.stroke();
+  }
+
+  function drawDebris() {
+    for (const d of state.debris) {
+      const a = Math.max(0, d.life / d.max);
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = d.color;
+      ctx.fillRect(-d.size, -d.size, d.size * 2, d.size * 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawRings() {
+    for (const r of state.rings) {
+      const t = 1 - r.life / r.max;
+      const radius = r.small ? 2 + t * 9 : 4 + t * 26;
+      const alpha = r.small ? (1 - t) * 0.45 : (1 - t) * 0.6;
+      ctx.strokeStyle = `rgba(255, 224, 102, ${alpha})`;
+      ctx.lineWidth = r.small ? 0.9 : 1.2;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  function drawBalls() {
+    for (const b of state.balls) {
+      ctx.shadowColor = COL.ballGlow;
+      ctx.shadowBlur = b.main ? 14 : 6;
+      ctx.fillStyle = b.main ? COL.ball : 'rgba(255,255,255,0.65)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.main ? cfg.ballR : cfg.ballR * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  let running = true;
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    if (running) loop();
+  });
+
+  function loop() {
+    if (!running) return;
+    refreshCardRect();
+    step();
+    ctx.clearRect(0, 0, state.w, state.h);
+    drawGrid();
+    drawTrail();
+    drawBars();
+    drawDebris();
+    drawRings();
+    drawBalls();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  loop();
+})();
+</script>
+
+</body>
+</html>
